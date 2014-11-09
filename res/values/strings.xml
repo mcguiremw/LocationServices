@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">LocationServices</string>
+    <string name="first_loc">Please Choose Your\nInitial Location</string>
+    <string name="second_loc">Please Choose Your\nFinal Location</string>
+</resources>
