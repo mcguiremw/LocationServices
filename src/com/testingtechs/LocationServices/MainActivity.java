@@ -31,14 +31,18 @@ public class MainActivity extends Activity implements LocationListener {
     private final String LAT_LONG_TWO = "Second Location";
     private final String DISTANCE = "Calculated Distance";
 
+    private boolean myLocOne = false, myLocTwo = false;
+    private final String MY_LOC_ONE = "MyLocOne";
+    private final String MY_LOC_TWO = "MyLocTwo";
+    protected MyLocations myLocationOne = new MyLocations(MY_LOC_ONE);
+    protected MyLocations myLocationTwo = new MyLocations(MY_LOC_TWO);
+
 
     /* Make determining saved state easier to keep track of*/
     private final String SAVED_STATE = "Saved State";
 
     /* Globals to use for grabbing lat longs */
     private LocationManager locationManager;
-
-    private Double latitude, longitude;
 
     /**
      * Overridden onCreate.
@@ -74,14 +78,13 @@ public class MainActivity extends Activity implements LocationListener {
                 Log.d("Reloading Saved State",
                         "Exception when reloading saved state: " + e);
             }
-            ((TextView)findViewById(R.id.distance))
+            ((TextView) findViewById(R.id.distance))
                     .setText(bun.getString(DISTANCE));
         }
     }
 
     /**
      * Ensure GPS sensor is loaded and running.
-     *
      */
     @Override
     public void onResume() {
@@ -158,18 +161,26 @@ public class MainActivity extends Activity implements LocationListener {
         String gpsProvider = LocationManager.GPS_PROVIDER;
         if (locationManager.isProviderEnabled(gpsProvider)) {
             TextView textView;
-            Double[] latLong = getLatLongCoordinates();
             if (view.getId() == R.id.first_loc_button) {
+                myLocOne = true;
                 textView = (TextView) findViewById(R.id.first_latLong);
-                textView.setText(latLong[0] + "\n" + latLong[1]);
+                textView.setText(myLocationOne.getLatitude()
+                        + "\n"
+                        + myLocationOne.getLongitude());
             } else if (view.getId() == R.id.second_loc_button) {
+                myLocTwo = true;
                 textView = (TextView) findViewById(R.id.sec_latLong);
-                textView.setText(latLong[0] + "\n" + latLong[1]);
+                textView.setText(myLocationTwo.getLatitude()
+                        + "\n"
+                        + myLocationTwo.getLongitude());
             } else {
                 Log.e("Unknown View ID",
                         "onChooseLocationClicked received bad ID ");
             }
-            calculateDistance();
+            //Once both locations have been chosen add the row of data to the DB
+            if (calculateDistance() != 0.0) {
+                //TODO add row to DB
+            }
 
             //Once location set it cannot be changed until app is reset
             view.setEnabled(false);
@@ -182,38 +193,21 @@ public class MainActivity extends Activity implements LocationListener {
      * If both coordinates have been set calculate the distance between the two.
      */
     private double calculateDistance() {
-        String firstLoc = (String) (((TextView)
-                findViewById(R.id.first_latLong)).getText());
-        String secLoc = (String) (((TextView)
-                findViewById(R.id.sec_latLong)).getText());
         double distance = 0.0;
         try {
-            String[] firstLocParts = firstLoc.split("\n");
-            LatLng point1 = new LatLng(Double.parseDouble(firstLocParts[0]),
-                    Double.parseDouble(firstLocParts[1]));
-
-            String[] secLocParts = secLoc.split("\n");
-            LatLng point2 = new LatLng(Double.parseDouble(secLocParts[0]),
-                    Double.parseDouble(secLocParts[1]));
+            LatLng point1 = new LatLng(myLocationOne.getLatitude(),
+                    myLocationTwo.getLongitude());
+            LatLng point2 = new LatLng(myLocationTwo.getLatitude(),
+                    myLocationTwo.getLongitude());
 
             distance = LatLngTool.distance(point1, point2, LengthUnit.METER);
         } catch (Exception e) {
             Log.d("Calculating Distance",
                     "One of the points has not been set: " + e);
         }
-        ((TextView)findViewById(R.id.distance)).setText("Distance: "
+        ((TextView) findViewById(R.id.distance)).setText("Distance: "
                 + distance + " meters");
         return distance;
-    }
-
-    /**
-     * Method that will set new Lat Longs from Location Listener and return them
-     * to be displayed properly when the user chooses to update location.
-     *
-     * @return
-     */
-    private Double[] getLatLongCoordinates() {
-        return new Double[]{this.latitude, this.longitude};
     }
 
     /**
@@ -256,8 +250,17 @@ public class MainActivity extends Activity implements LocationListener {
     ////////////////////////////////////////////////////////////////////////////
     @Override
     public void onLocationChanged(Location location) {
-        this.latitude = location.getLatitude();
-        this.longitude = location.getLongitude();
+        if (myLocOne) {
+            myLocationOne.setLatitude(location.getLatitude());
+            myLocationOne.setLongitude(location.getLongitude());
+            myLocationOne.setTime(location.getTime());
+            myLocOne = false;
+        } else if (myLocTwo) {
+            myLocationTwo.setLatitude(location.getLatitude());
+            myLocationTwo.setLongitude(location.getLongitude());
+            myLocationTwo.setTime(location.getTime());
+            myLocTwo = false;
+        }
     }
 
     @Override
